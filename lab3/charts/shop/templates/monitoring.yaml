@@ -1,0 +1,50 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shop
+  labels:
+    release: kps
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [api, worker]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.monitoring.interval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shop
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: shop.rules
+      rules:
+        - alert: ShopApiDegraded
+          expr: kube_deployment_status_replicas_available{namespace="{{ .Release.Namespace }}",deployment="shop-api"} < 2
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Живых реплик api меньше двух"
+        - alert: ShopPostgresNotReady
+          expr: absent(kube_pod_status_ready{namespace="{{ .Release.Namespace }}",condition="true",pod=~"shop-db-[0-9]+"} == 1)
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Ни один под Postgres не готов"
+        - alert: ShopOrdersBacklog
+          expr: max(shop_orders_pending) > 20
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Заказы копятся: worker не успевает или не работает"
+{{- end }}

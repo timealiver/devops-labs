@@ -1,0 +1,5 @@
+env:
+  - name: ALERTMANAGER_URI
+    value: http://kps-kube-prometheus-stack-alertmanager.monitoring.svc:9093
+  - name: ALERTMANAGER_NAME
+    value: lab

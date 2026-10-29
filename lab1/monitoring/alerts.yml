@@ -1,0 +1,25 @@
+groups:
+  - name: lab1-api
+    rules:
+      - alert: ContainerMemoryNearLimit
+        expr: container_memory_working_set_bytes{id=~"/lab1/.+"} / container_spec_memory_limit_bytes{id=~"/lab1/.+"} > 0.9
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Память api выше 90% лимита"
+
+      - alert: ContainerCPUThrottling
+        expr: rate(container_cpu_cfs_throttled_periods_total{id=~"/lab1/.+"}[30s]) / rate(container_cpu_cfs_periods_total{id=~"/lab1/.+"}[30s]) > 0.25
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "api тротлится больше чем в 25% периодов CPU"
+
+      - alert: ContainerRestarted
+        expr: changes(container_start_time_seconds{id=~"/lab1/.+"}[10m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Контейнер api перезапускался (OOM-kill и restart policy)"

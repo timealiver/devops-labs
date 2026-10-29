@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: {{ .Release.Name }}.rules
+      rules:
+        - alert: ApiHighErrorRate
+          expr: sum(rate(http_errors_total[1m])) / sum(rate(http_requests_total[1m])) > 0.05
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Более 5% запросов завершаются 5xx"
+        - alert: ApiSlowP95
+          expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[1m]))) > 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "p95 времени ответа выше 1 секунды"
+        - alert: ApiDown
+          expr: absent(up{job="{{ .Release.Name }}"} == 1)
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Сервис api не отвечает на скрейп"

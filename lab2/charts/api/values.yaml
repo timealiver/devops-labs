@@ -1,0 +1,13 @@
+image:
+  repository: api
+  tag: "2.0"
+  pullPolicy: IfNotPresent
+replicas: 1
+port: 8080
+otlpEndpoint: http://jaeger.monitoring.svc:4318
+resources:
+  requests: {cpu: 50m, memory: 32Mi}
+  limits: {cpu: 500m, memory: 128Mi}
+serviceMonitor:
+  enabled: true
+  interval: 10s

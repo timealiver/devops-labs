@@ -1,0 +1,50 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shop
+  labels:
+    release: kps
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [api, worker]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.monitoring.interval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shop
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: shop.rules
+      rules:
+        - alert: ShopApiSlow
+          expr: histogram_quantile(0.95, sum by (le) (rate(shop_api_request_duration_seconds_bucket{path="/order"}[1m]))) > 0.3
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "SLA нарушен: p95 оформления заказа выше 300 мс"
+        - alert: ShopPodsPending
+          expr: sum(kube_pod_status_phase{namespace="{{ .Release.Namespace }}",phase="Pending"}) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "В namespace shop есть поды в Pending: кластеру не хватает ресурсов"
+        - alert: ShopPodEvicted
+          expr: sum(kube_pod_status_reason{namespace="{{ .Release.Namespace }}",reason="Evicted"}) > 0
+          for: 10s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Под вытеснен с ноды из-за давления по ресурсам"
+{{- end }}

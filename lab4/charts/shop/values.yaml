@@ -1,0 +1,52 @@
+spread:
+  mechanism: topologySpreadConstraints
+priority:
+  critical:
+    name: shop-critical
+    value: 1000000
+  batch:
+    name: shop-batch
+    value: -100
+api:
+  replicas: 3
+  image:
+    repository: registry.local/shop-api
+    tag: "1.0"
+  healthFail: "false"
+  nodePort: 30080
+  resources:
+    requests: {cpu: 60m, memory: 100Mi}
+    limits: {cpu: 60m, memory: 100Mi}
+worker:
+  replicas: 2
+  image:
+    repository: registry.local/shop-worker
+    tag: "1.0"
+  resources:
+    requests: {cpu: 10m, memory: 100Mi}
+    limits: {cpu: 250m, memory: 100Mi}
+postgres:
+  instances: 1
+  storage: 1Gi
+  resources:
+    requests: {cpu: 210m, memory: 160Mi}
+    limits: {cpu: 210m, memory: 160Mi}
+batch:
+  replicas: 1
+  image:
+    repository: registry.local/shop-batch
+    tag: "1.0"
+  memMb: 100
+  cpu: 1
+  resources:
+    requests: {cpu: 100m, memory: 64Mi}
+    limits: {cpu: 500m, memory: 600Mi}
+pdb:
+  api:
+    minAvailable: 2
+  postgres:
+    enabled: true
+team: shop
+monitoring:
+  enabled: true
+  interval: 10s

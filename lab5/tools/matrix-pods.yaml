@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: outsider
+  labels:
+    kubernetes.io/metadata.name: outsider
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: as-api
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: api
+    team: shop
+    test: "true"
+spec:
+  containers:
+    - name: probe
+      image: registry.local/netcheck:1.0
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 64Mi}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: as-worker
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: worker
+    team: shop
+    test: "true"
+spec:
+  containers:
+    - name: probe
+      image: registry.local/netcheck:1.0
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 64Mi}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: intruder
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: intruder
+    team: shop
+    test: "true"
+spec:
+  containers:
+    - name: probe
+      image: registry.local/netcheck:1.0
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 64Mi}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: outsider
+  namespace: outsider
+  labels:
+    app.kubernetes.io/name: outsider
+    team: shop
+    test: "true"
+spec:
+  containers:
+    - name: probe
+      image: registry.local/netcheck:1.0
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 64Mi}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

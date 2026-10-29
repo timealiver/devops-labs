@@ -1,0 +1,173 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+{{- $b := $np.breakage }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+{{- if ne $b "dns" }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-dns
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {protocol: ANY, port: "{{ $np.ports.dns }}"}
+          rules:
+            dns:
+              - matchPattern: "*"
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-ingress
+spec:
+  podSelector:
+    matchLabels:
+      {{- toYaml $np.labels.api | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.monitoringNamespace }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: client
+      ports:
+        - {protocol: TCP, port: {{ $np.ports.api }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: worker-ingress
+spec:
+  podSelector:
+    matchLabels:
+      {{- toYaml $np.labels.worker | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.monitoringNamespace }}
+      ports:
+        - {protocol: TCP, port: {{ $np.ports.api }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-ingress
+spec:
+  podSelector:
+    matchLabels:
+      {{- toYaml $np.labels.postgres | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- toYaml $np.labels.api | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- if eq $b "worker-label" }}
+              app.kubernetes.io/name: wrker
+              {{- else }}
+              {{- toYaml $np.labels.worker | nindent 14 }}
+              {{- end }}
+      ports:
+        - {protocol: TCP, port: {{ $np.ports.postgres }}}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $np.cnpgNamespace }}
+        - podSelector:
+            matchLabels:
+              {{- toYaml $np.labels.postgres | nindent 14 }}
+      ports:
+        - {protocol: TCP, port: {{ $np.ports.postgres }}}
+        - {protocol: TCP, port: {{ $np.ports.cnpgStatus }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-egress-to-postgres
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [api, worker]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- toYaml $np.labels.postgres | nindent 14 }}
+      ports:
+        - {protocol: TCP, port: {{ if eq $b "api-port" }}5433{{ else }}{{ $np.ports.postgres }}{{ end }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-egress
+spec:
+  podSelector:
+    matchLabels:
+      {{- toYaml $np.labels.postgres | nindent 6 }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- toYaml $np.labels.postgres | nindent 14 }}
+      ports:
+        - {protocol: TCP, port: {{ $np.ports.postgres }}}
+        - {protocol: TCP, port: {{ $np.ports.cnpgStatus }}}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: postgres-egress-apiserver
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- toYaml $np.labels.postgres | nindent 6 }}
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "{{ $np.ports.apiserver }}"}
+{{- if ne $b "no-client-ingress" }}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: api-ingress-client
+spec:
+  endpointSelector:
+    matchLabels:
+      {{- toYaml $np.labels.api | nindent 6 }}
+  ingress:
+    - fromEntities:
+        - world
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - {protocol: TCP, port: "{{ $np.ports.api }}"}
+{{- end }}
+{{- end }}

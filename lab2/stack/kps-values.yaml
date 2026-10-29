@@ -1,0 +1,77 @@
+nodeExporter:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeProxy:
+  enabled: false
+defaultRules:
+  rules:
+    etcd: false
+    kubeSchedulerAlerting: false
+    kubeControllerManager: false
+prometheus:
+  service:
+    type: NodePort
+    nodePort: 30090
+  prometheusSpec:
+    retention: 6h
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+alertmanager:
+  service:
+    type: NodePort
+    nodePort: 30093
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 10m, memory: 50Mi}
+  config:
+    route:
+      receiver: webhook
+      group_by: [alertname]
+      group_wait: 10s
+      group_interval: 30s
+      repeat_interval: 1h
+      routes:
+        - receiver: "null"
+          matchers: ['alertname=~"Watchdog|InfoInhibitor"']
+    receivers:
+      - name: "null"
+      - name: webhook
+        webhook_configs:
+          - url: http://webhook-sink.monitoring.svc:8080/
+            send_resolved: true
+grafana:
+  adminPassword: lab
+  service:
+    type: NodePort
+    nodePort: 30300
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_role: Admin
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      access: proxy
+      url: http://loki.monitoring.svc:3100
+      jsonData:
+        derivedFields:
+          - name: trace_id
+            matcherRegex: '"trace_id":"(\w+)"'
+            url: 'http://localhost:30686/trace/$${__value.raw}'
+            urlDisplayLabel: Jaeger
+    - name: Jaeger
+      uid: jaeger
+      type: jaeger
+      access: proxy
+      url: http://jaeger.monitoring.svc:16686
+  resources:
+    requests: {cpu: 50m, memory: 150Mi}

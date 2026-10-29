@@ -1,0 +1,4 @@
+apiVersion: v2
+name: jaeger
+description: Jaeger all-in-one with OTLP receiver
+version: 0.1.0

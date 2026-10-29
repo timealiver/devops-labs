@@ -1,0 +1,13 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ .Values.priority.critical.name }}
+value: {{ .Values.priority.critical.value }}
+description: "Critical path - api and postgres"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ .Values.priority.batch.name }}
+value: {{ .Values.priority.batch.value }}
+description: "Background batch, first to be preempted"

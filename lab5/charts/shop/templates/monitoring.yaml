@@ -1,0 +1,66 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shop
+  labels:
+    release: kps
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [api, worker]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.monitoring.interval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: hubble
+  labels:
+    release: kps
+spec:
+  namespaceSelector:
+    matchNames: [kube-system]
+  selector:
+    matchLabels:
+      k8s-app: hubble
+  endpoints:
+    - port: hubble-metrics
+      interval: {{ .Values.monitoring.interval }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shop-network
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: shop.network.rules
+      rules:
+        - alert: ShopTrafficDropped
+          expr: sum(rate(hubble_drop_total{reason="POLICY_DENIED"}[1m])) > 0
+          for: 30s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Сеть отбрасывает трафик по NetworkPolicy"
+        - alert: ShopDnsFailures
+          expr: sum(rate(hubble_dns_responses_total{rcode!="No Error"}[2m])) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "DNS-запросы получают ошибки (NXDOMAIN, SERVFAIL)"
+        - alert: ShopOrdersFailing
+          expr: sum(rate(shop_api_requests_total{path="/order",status=~"5.."}[1m])) > 0.2
+          for: 30s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Оформление заказа отвечает 5xx: клиенты не могут заказать"
+{{- end }}

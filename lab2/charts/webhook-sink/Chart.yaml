@@ -1,0 +1,4 @@
+apiVersion: v2
+name: webhook-sink
+description: HTTP echo receiver for Alertmanager webhooks
+version: 0.1.0

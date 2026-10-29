@@ -1,0 +1,19 @@
+kubeProxyReplacement: false
+operator:
+  replicas: 1
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+    service:
+      type: NodePort
+      nodePort: 30700
+  metrics:
+    enabled:
+      - dns
+      - drop
+      - tcp
+      - flow
+      - icmp

@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-sink
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: webhook-sink}
+  template:
+    metadata:
+      labels: {app: webhook-sink}
+    spec:
+      containers:
+        - name: echo
+          image: mendhak/http-https-echo:37
+          ports:
+            - containerPort: 8080
+          env:
+            - {name: JSON_LOG, value: "1"}
+          resources:
+            requests: {cpu: 10m, memory: 40Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-sink
+spec:
+  selector: {app: webhook-sink}
+  ports:
+    - port: 8080
+      targetPort: 8080

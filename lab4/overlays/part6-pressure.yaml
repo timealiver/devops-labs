@@ -1,0 +1,4 @@
+batch:
+  replicas: 26
+  memMb: 10
+  cpu: 0

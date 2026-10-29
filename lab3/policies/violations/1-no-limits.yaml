@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-no-limits
+  namespace: default
+  labels:
+    app.kubernetes.io/name: bad
+    team: shop
+spec:
+  containers:
+    - name: app
+      image: registry.local/shop-api:1.0
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000

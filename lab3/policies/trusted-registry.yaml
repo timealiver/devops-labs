@@ -1,0 +1,41 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: trusted-registry
+  annotations:
+    policies.kyverno.io/title: Only trusted registries
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-registry
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              - kube-system
+              - kube-public
+              - kube-node-lease
+              - kyverno
+              - cnpg-system
+              - monitoring
+              - local-path-storage
+      validate:
+        message: "Образ должен быть из доверенного реестра: registry.local/ или ghcr.io/cloudnative-pg/."
+        foreach:
+          - list: "request.object.spec.[initContainers, containers][]"
+            deny:
+              conditions:
+                all:
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "registry.local/*"
+                  - key: "{{ element.image }}"
+                    operator: NotEquals
+                    value: "ghcr.io/cloudnative-pg/*"
+

@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: client
+  labels:
+    kubernetes.io/metadata.name: client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: client
+  labels:
+    app.kubernetes.io/name: loadgen
+    team: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loadgen
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: loadgen
+        team: shop
+    spec:
+      containers:
+        - name: loadgen
+          image: registry.local/netcheck:1.0
+          command:
+            - sh
+            - -c
+            - |
+              URL=http://shop-api.shop.svc.cluster.local:8080/order?item=chaos
+              while true; do
+                ok=0; fail=0
+                end=$(( $(date +%s) + 1 ))
+                while [ $(date +%s) -lt $end ]; do
+                  code=$(curl -s -X POST -o /dev/null -m 2 -w '%{http_code}' "$URL")
+                  if [ "$code" = 200 ]; then ok=$((ok+1)); else fail=$((fail+1)); fi
+                done
+                echo "$(date +%s) $ok $fail"
+              done
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 64Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

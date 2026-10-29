@@ -1,0 +1,35 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Mandatory labels
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              - kube-system
+              - kube-public
+              - kube-node-lease
+              - kyverno
+              - cnpg-system
+              - monitoring
+              - local-path-storage
+      validate:
+        message: "У пода должны быть метки app.kubernetes.io/name и team."
+        pattern:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "?*"
+              team: "?*"
+

@@ -1,0 +1,37 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-nonroot
+  annotations:
+    policies.kyverno.io/title: Containers must not run as root
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-nonroot
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              - kube-system
+              - kube-public
+              - kube-node-lease
+              - kyverno
+              - cnpg-system
+              - monitoring
+              - local-path-storage
+      validate:
+        message: "Контейнер должен запускаться не от root: runAsNonRoot: true."
+        pattern:
+          spec:
+            =(securityContext):
+              =(runAsNonRoot): "true"
+            containers:
+              - securityContext:
+                  runAsNonRoot: true
+

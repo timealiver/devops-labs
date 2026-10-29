@@ -1,0 +1,45 @@
+api:
+  replicas: 3
+  image:
+    repository: registry.local/shop-api
+    tag: "1.0"
+  healthFail: "false"
+  preStopSleep: 0
+  nodePort: 30080
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 64Mi}
+worker:
+  replicas: 2
+  image:
+    repository: registry.local/shop-worker
+    tag: "1.0"
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 64Mi}
+postgres:
+  instances: 1
+  storage: 1Gi
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+team: shop
+monitoring:
+  enabled: true
+  interval: 10s
+networkPolicy:
+  enabled: true
+  breakage: ""
+  apiserverCidr: 172.20.0.4/32
+  ports:
+    api: 8080
+    postgres: 5432
+    cnpgStatus: 8000
+    apiserver: 6443
+    dns: 53
+  labels:
+    api: {app.kubernetes.io/name: api}
+    worker: {app.kubernetes.io/name: worker}
+    postgres: {cnpg.io/cluster: shop-db}
+  monitoringNamespace: monitoring
+  cnpgNamespace: cnpg-system

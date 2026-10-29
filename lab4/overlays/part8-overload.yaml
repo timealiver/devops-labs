@@ -1,0 +1,6 @@
+batch:
+  replicas: 14
+  memMb: 10
+  cpu: 1
+api:
+  replicas: 3

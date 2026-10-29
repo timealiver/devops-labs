@@ -1,0 +1,40 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resources
+  annotations:
+    policies.kyverno.io/title: Requests and limits are required
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: check-resources
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+              - kube-system
+              - kube-public
+              - kube-node-lease
+              - kyverno
+              - cnpg-system
+              - monitoring
+              - local-path-storage
+      validate:
+        message: "У каждого контейнера должны быть requests и limits по cpu и memory."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+

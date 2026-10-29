@@ -1,0 +1,5 @@
+apiVersion: v2
+name: api
+description: Go service with RED metrics, JSON logs and OTel traces
+version: 0.1.0
+appVersion: "2.0"
